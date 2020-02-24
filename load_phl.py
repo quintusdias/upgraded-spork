@@ -19,7 +19,7 @@ class Thang(object):
         self.create_constellations()
         self.load_constellations()
 
-        self.create_stars()
+        self.define_stars()
         self.load_stars()
 
         self.update()
@@ -28,7 +28,7 @@ class Thang(object):
         self.load_planets()
 
     def update(self):
-        df_stars = pd.read_sql('select * from star_lut', self.conn)
+        df_stars = pd.read_sql('select * from stars', self.conn)
 
         # get rid of the star name now that we have the ID.
         df = pd.merge(self.df, df_stars, how='inner', left_on='s_name', right_on='name')
@@ -47,7 +47,7 @@ class Thang(object):
 
     def create_constellations(self):
         sql = """
-        drop table if exists constellations
+        drop table if exists constellations cascade
         """
         self.cursor.execute(sql)
 
@@ -66,18 +66,18 @@ class Thang(object):
         }
         for key, value in column_comments.items():
             sql = f"""
-            comment on column constellation.{key} is '{value}'
+            comment on column constellations.{key} is '{value}'
             """
             self.cursor.execute(sql, {'value': value})
 
     def create_planets(self):
         sql = """
-        drop table if exists planet_lut
+        drop table if exists planets
         """
         self.cursor.execute(sql)
 
         sql = """
-        create table planet_lut (
+        create table planets (
             id                        serial primary key, 
             name                      text,
             mass                      real,
@@ -101,10 +101,10 @@ class Thang(object):
         self.cursor.execute(sql)
 
         sql = """
-        alter  table planet_lut
+        alter  table planets
         add constraint parent_star
             foreign key (star_id)
-            references star_lut(id)
+            references stars(id)
         """
         self.cursor.execute(sql)
 
@@ -126,14 +126,14 @@ class Thang(object):
         }
         for key, value in column_comments.items():
             sql = f"""
-            comment on column planet_lut.{key} is '{value}'
+            comment on column planets.{key} is '{value}'
             """
             self.cursor.execute(sql, {'value': value})
 
     def load_planets(self):
 
         sql = """
-        insert into planet_lut
+        insert into planets
         (
             name,
             star_id,
@@ -191,48 +191,75 @@ class Thang(object):
             }
             self.cursor.execute(sql, params)
 
-    def create_stars(self):
+    def define_stars(self):
         sql = """
-        drop table if exists star_lut cascade
+        drop table if exists stars cascade
         """
         self.cursor.execute(sql)
 
         sql = """
-        create table star_lut (
-            id   serial primary key, 
-            name text,
+        create table stars (
+            id               serial primary key, 
+            name             text,
+            constellation_id integer,
             unique(name)
         )
         """
         self.cursor.execute(sql)
 
         sql = """
-        comment on column star_lut.name is 'star name'
+        alter  table stars
+        add constraint parent_constellation
+            foreign key (constellation_id)
+            references constellations(id)
         """
+        self.cursor.execute(sql)
+
+        sql = """
+        comment on column stars.name is 'star name'
+        """
+        self.cursor.execute(sql)
+
+        sql = (
+            "comment on column stars.constellation_id is "
+            "'link back to constellation table'"
+        )
         self.cursor.execute(sql)
 
     def load_constellations(self):
         cols = ['s_constellation', 's_constellation_abr', 's_constellation_eng']
-        df = self.df[cols].unique()
+        df = self.df[cols].drop_duplicates()
 
         sql = """
-        insert into constellation (name, abr, meaning)
-        values (%(name)s, %(abr)s, %(meaning)s)
+        insert into constellations (name, abr, meaning)
+        values %s
         """
 
-        for star in stars:
-            self.cursor.execute(sql, {'name': star})
+        arglist = [row.to_dict() for _, row in df.iterrows()]
+        template = (
+            '(%(s_constellation)s, '
+            '%(s_constellation_abr)s, '
+            '%(s_constellation_eng)s)'
+        )
+        psycopg2.extras.execute_values(self.cursor, sql, arglist, template)
 
     def load_stars(self):
-        stars = self.df['s_name'].unique()
+
+        columns = ['s_name', 's_constellation']
+        stars = self.df[columns].drop_duplicates()
+
+        constellations = pd.read_sql('select * from constellations', self.conn)
+        df = pd.merge(stars, constellations, how='inner', left_on='s_constellation', right_on='name') 
 
         sql = """
-        insert into star_lut (name)
-        values (%(name)s)
+        insert into stars (name, constellation_id)
+        values %s
         """
 
-        for star in stars:
-            self.cursor.execute(sql, {'name': star})
+        arglist = [row.to_dict() for _, row in df.iterrows()]
+        template = '(%(s_name)s, %(id)s)'
+
+        psycopg2.extras.execute_values(self.cursor, sql, arglist, template)
 
 if __name__ == '__main__':
     o = Thang()
