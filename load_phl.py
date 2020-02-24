@@ -35,7 +35,8 @@ class Thang(object):
         self.df = df
 
     def load_data(self):
-        self.df = pd.read_csv('phl_exoplanet_catalog.csv')
+        self.df = pd.read_csv('phl_exoplanet_catalog.csv',
+                              parse_dates=['P_UPDATED'])
 
         # Make the columns all lower case.  Upper case causes issues.
         cols = [x.lower() for x in self.df.columns]
@@ -49,16 +50,23 @@ class Thang(object):
 
         sql = """
         create table planet_lut (
-            id               serial primary key, 
-            name             text,
-            mass             double precision,
-            mass_error_min   double precision,
-            mass_error_max   double precision,
-            radius           double precision,
-            radius_error_min double precision,
-            radius_error_max double precision,
-            year             integer,
-            star_id          integer,
+            id                        serial primary key, 
+            name                      text,
+            mass                      real,
+            mass_error_min            real,
+            mass_error_max            real,
+            radius                    real,
+            radius_error_min          real,
+            radius_error_max          real,
+            year_discovered           integer,
+            last_updated              timestamp,
+            period                    real,
+            period_error_min          real,
+            period_error_max          real,
+            semi_major_axis           real,
+            semi_major_axis_error_min real,
+            semi_major_axis_error_max real,
+            star_id                   integer,
             unique(name)
         )
         """
@@ -72,45 +80,27 @@ class Thang(object):
         """
         self.cursor.execute(sql)
 
-        sql = """
-        comment on column planet_lut.name is 'planet name'
-        """
-        self.cursor.execute(sql)
-
-        sql = """
-        comment on column planet_lut.mass is 'earth masses'
-        """
-        self.cursor.execute(sql)
-
-        sql = """
-        comment on column planet_lut.mass_error_min is 'earth masses'
-        """
-        self.cursor.execute(sql)
-
-        sql = """
-        comment on column planet_lut.mass_error_max is 'earth masses'
-        """
-        self.cursor.execute(sql)
-
-        sql = """
-        comment on column planet_lut.radius is 'earth radii'
-        """
-        self.cursor.execute(sql)
-
-        sql = """
-        comment on column planet_lut.radius_error_min is 'earth radii'
-        """
-        self.cursor.execute(sql)
-
-        sql = """
-        comment on column planet_lut.radius_error_max is 'earth radii'
-        """
-        self.cursor.execute(sql)
-
-        sql = """
-        comment on column planet_lut.year is 'planet discovered year'
-        """
-        self.cursor.execute(sql)
+        column_comments = {
+            'name':             'planet name',
+            'mass':             'earth masses',
+            'mass_error_min':   'earth masses',
+            'mass_error_max':   'earth masses',
+            'radius':           'earth radii',
+            'radius_error_min': 'earth radii',
+            'radius_error_max': 'earth radii',
+            'year_discovered':  'planet discovered year',
+            'period':           'planet period (days)',
+            'period_error_min': 'planet period min (days)',
+            'period_error_max': 'planet period max (days)',
+            'semi_major_axis':           'planet semi_major_axis (AU)',
+            'semi_major_axis_error_min': 'planet semi_major_axis min (AU)',
+            'semi_major_axis_error_max': 'planet semi_major_axis max (AU)',
+        }
+        for key, value in column_comments.items():
+            sql = f"""
+            comment on column planet_lut.{key} is '{value}'
+            """
+            self.cursor.execute(sql, {'value': value})
 
     def load_planets(self):
 
@@ -125,7 +115,13 @@ class Thang(object):
             radius,
             radius_error_min,
             radius_error_max,
-            year
+            year_discovered,
+            period,
+            period_error_min,
+            period_error_max,
+            semi_major_axis,
+            semi_major_axis_error_min,
+            semi_major_axis_error_max
         )
         values
         (
@@ -137,7 +133,13 @@ class Thang(object):
             %(radius)s,
             %(radius_error_min)s,
             %(radius_error_max)s,
-            %(year_discovered)s
+            %(year_discovered)s,
+            %(p_period)s,
+            %(p_period_error_min)s,
+            %(p_period_error_max)s,
+            %(p_semi_major_axis)s,
+            %(p_semi_major_axis_error_min)s,
+            %(p_semi_major_axis_error_max)s
         )
         """
 
@@ -152,6 +154,12 @@ class Thang(object):
                 'radius_error_min': row['p_radius_error_min'],
                 'radius_error_max': row['p_radius_error_max'],
                 'year_discovered': row['p_year'],
+                'p_period': row['p_period'],
+                'p_period_error_min': row['p_period_error_min'],
+                'p_period_error_max': row['p_period_error_max'],
+                'p_semi_major_axis': row['p_semi_major_axis'],
+                'p_semi_major_axis_error_min': row['p_semi_major_axis_error_min'],
+                'p_semi_major_axis_error_max': row['p_semi_major_axis_error_max'],
             }
             self.cursor.execute(sql, params)
 
