@@ -16,6 +16,9 @@ class Thang(object):
     def run(self):
         self.load_data()
 
+        self.create_constellations()
+        self.load_constellations()
+
         self.create_stars()
         self.load_stars()
 
@@ -41,6 +44,31 @@ class Thang(object):
         # Make the columns all lower case.  Upper case causes issues.
         cols = [x.lower() for x in self.df.columns]
         self.df.columns = cols
+
+    def create_constellations(self):
+        sql = """
+        drop table if exists constellations
+        """
+        self.cursor.execute(sql)
+
+        sql = """
+        create table constellations (
+            id                        serial primary key, 
+            name                      text,
+            abr                       text,
+            meaning                   text
+        )
+        """
+        self.cursor.execute(sql)
+
+        column_comments = {
+            'abr':              'constellation abreviated',
+        }
+        for key, value in column_comments.items():
+            sql = f"""
+            comment on column constellation.{key} is '{value}'
+            """
+            self.cursor.execute(sql, {'value': value})
 
     def create_planets(self):
         sql = """
@@ -182,6 +210,18 @@ class Thang(object):
         comment on column star_lut.name is 'star name'
         """
         self.cursor.execute(sql)
+
+    def load_constellations(self):
+        cols = ['s_constellation', 's_constellation_abr', 's_constellation_eng']
+        df = self.df[cols].unique()
+
+        sql = """
+        insert into constellation (name, abr, meaning)
+        values (%(name)s, %(abr)s, %(meaning)s)
+        """
+
+        for star in stars:
+            self.cursor.execute(sql, {'name': star})
 
     def load_stars(self):
         stars = self.df['s_name'].unique()
