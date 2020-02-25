@@ -94,6 +94,19 @@ class Thang(object):
             semi_major_axis           real,
             semi_major_axis_error_min real,
             semi_major_axis_error_max real,
+            eccentricity              real,
+            eccentricity_error_min    real,
+            eccentricity_error_max    real,
+            inclination               real,
+            inclination_error_min     real,
+            inclination_error_max     real,
+            omega                     real,
+            omega_error_min           real,
+            omega_error_max           real,
+            tperi                     real,
+            tperi_error_min           real,
+            tperi_error_max           real,
+            detection                 text,
             star_id                   integer,
             unique(name)
         )
@@ -121,8 +134,21 @@ class Thang(object):
             'period_error_min': 'planet period min (days)',
             'period_error_max': 'planet period max (days)',
             'semi_major_axis':           'planet semi_major_axis (AU)',
-            'semi_major_axis_error_min': 'planet semi_major_axis min (AU)',
-            'semi_major_axis_error_max': 'planet semi_major_axis max (AU)',
+            'semi_major_axis_error_min': 'planet semi_major_axis error min (AU)',
+            'semi_major_axis_error_max': 'planet semi_major_axis error max (AU)',
+            'eccentricity':              'planet eccentricity',
+            'eccentricity_error_min':    'planet eccentricity error min',
+            'eccentricity_error_max':    'planet eccentricity error max',
+            'inclination':               'planet inclination (deg)',
+            'inclination_error_min':     'planet inclination error min (deg)',
+            'inclination_error_max':     'planet inclination error max (deg)',
+            'omega':                     'planet argument of periastron (deg)',
+            'omega_error_min':           'planet argument of periastron error min (deg)',
+            'omega_error_max':           'planet argument of periastron error max (deg)',
+            'tperi':                     'planet time of periastron (seconds)',
+            'tperi_error_min':           'planet time of periastron error min (seconds)',
+            'tperi_error_max':           'planet time of periastron error max (seconds)',
+            'detection':                 'planet detection method',
         }
         for key, value in column_comments.items():
             sql = f"""
@@ -149,7 +175,20 @@ class Thang(object):
             period_error_max,
             semi_major_axis,
             semi_major_axis_error_min,
-            semi_major_axis_error_max
+            semi_major_axis_error_max,
+            eccentricity,
+            eccentricity_error_min,
+            eccentricity_error_max,
+            inclination,
+            inclination_error_min,
+            inclination_error_max,
+            omega,
+            omega_error_min,
+            omega_error_max,
+            tperi,
+            tperi_error_min,
+            tperi_error_max,
+            detection
         )
         values
         (
@@ -167,7 +206,20 @@ class Thang(object):
             %(p_period_error_max)s,
             %(p_semi_major_axis)s,
             %(p_semi_major_axis_error_min)s,
-            %(p_semi_major_axis_error_max)s
+            %(p_semi_major_axis_error_max)s,
+            %(p_eccentricity)s,
+            %(p_eccentricity_error_min)s,
+            %(p_eccentricity_error_max)s,
+            %(p_inclination)s,
+            %(p_inclination_error_min)s,
+            %(p_inclination_error_max)s,
+            %(p_omega)s,
+            %(p_omega_error_min)s,
+            %(p_omega_error_max)s,
+            %(p_tperi)s,
+            %(p_tperi_error_min)s,
+            %(p_tperi_error_max)s,
+            %(p_detection)s
         )
         """
 
@@ -188,6 +240,19 @@ class Thang(object):
                 'p_semi_major_axis': row['p_semi_major_axis'],
                 'p_semi_major_axis_error_min': row['p_semi_major_axis_error_min'],
                 'p_semi_major_axis_error_max': row['p_semi_major_axis_error_max'],
+                'p_eccentricity': row['p_eccentricity'],
+                'p_eccentricity_error_min': row['p_eccentricity_error_min'],
+                'p_eccentricity_error_max': row['p_eccentricity_error_max'],
+                'p_inclination': row['p_inclination'],
+                'p_inclination_error_min': row['p_inclination_error_min'],
+                'p_inclination_error_max': row['p_inclination_error_max'],
+                'p_omega': row['p_omega'],
+                'p_omega_error_min': row['p_omega_error_min'],
+                'p_omega_error_max': row['p_omega_error_max'],
+                'p_tperi': row['p_tperi'],
+                'p_tperi_error_min': row['p_tperi_error_min'],
+                'p_tperi_error_max': row['p_tperi_error_max'],
+                'p_detection': row['p_detection'],
             }
             self.cursor.execute(sql, params)
 
