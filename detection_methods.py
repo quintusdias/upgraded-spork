@@ -35,5 +35,7 @@ for p in ax.patches:
 
     p.set_color(colors[0])
 
-plt.tight_layout()
+ax.set_xlim(0, 4000)
+box = ax.get_position()
+ax.set_position([0.41, 0.139, 0.45, 0.777])
 

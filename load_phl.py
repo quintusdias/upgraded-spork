@@ -111,7 +111,15 @@ class Thang(object):
             impact_parameter_error_min real,
             impact_parameter_error_max real,
             temp_measured             real,
+            geo_albedo                real,
+            geo_albedo_error_min      real,
+            geo_albedo_error_max      real,
             detection                 text,
+            detection_mass            text,
+            detection_radius          real,
+            alt_names                 text,
+            atmosphere                text,
+            type                      text,
             star_id                   integer,
             unique(name)
         )
@@ -158,7 +166,15 @@ class Thang(object):
             'impact_parameter_error_max':  'planet impact parameter error max',
             'angular_distance':          'planet-star angular separation (arcsec)',
             'temp_measured':             'planet measured equilibrium temperature (K)',
+            'geo_albedo':                'planet measured geometric albedo',
+            'geo_albedo_error_min':      'planet measured geometric albedo error min',
+            'geo_albedo_error_max':      'planet measured geometric albedo error max',
             'detection':                 'planet detection method',
+            'detection_mass':            'planet detection method for mass',
+            'detection_radius':          'planet detection method for radius',
+            'alt_names':                 'planet alternate names',
+            'atmosphere':                'planet atmosphere composition (no data yet)',
+            'type':                      'planet type (PHL''s mass-radius classification)',
         }
         for key, value in column_comments.items():
             sql = f"""
@@ -203,7 +219,15 @@ class Thang(object):
             impact_parameter_error_max,
             angular_distance,
             temp_measured,
-            detection
+            geo_albedo,
+            geo_albedo_error_min,
+            geo_albedo_error_max,
+            detection,
+            detection_mass,
+            detection_radius,
+            alt_names,
+            atmosphere,
+            type
         )
         values
         (
@@ -239,7 +263,15 @@ class Thang(object):
             %(p_impact_parameter_error_max)s,
             %(p_angular_distance)s,
             %(p_temp_measured)s,
-            %(p_detection)s
+            %(p_geo_albedo)s,
+            %(p_geo_albedo_error_min)s,
+            %(p_geo_albedo_error_max)s,
+            %(p_detection)s,
+            %(p_detection_mass)s,
+            %(p_detection_radius)s,
+            %(p_alt_names)s,
+            %(p_atmosphere)s,
+            %(p_type)s
         )
         """
 
@@ -277,7 +309,15 @@ class Thang(object):
                 'p_impact_parameter_error_max': row['p_impact_parameter_error_max'],
                 'p_angular_distance': row['p_angular_distance'],
                 'p_temp_measured': row['p_temp_measured'],
+                'p_geo_albedo': row['p_geo_albedo'],
+                'p_geo_albedo_error_min': row['p_geo_albedo_error_min'],
+                'p_geo_albedo_error_max': row['p_geo_albedo_error_max'],
                 'p_detection': row['p_detection'],
+                'p_detection_mass': row['p_detection_mass'],
+                'p_detection_radius': row['p_detection_radius'],
+                'p_alt_names': row['p_alt_names'],
+                'p_atmosphere': row['p_atmosphere'],
+                'p_type': row['p_type'],
             }
             self.cursor.execute(sql, params)
 
