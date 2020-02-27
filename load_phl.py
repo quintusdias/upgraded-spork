@@ -321,41 +321,6 @@ class Thang(object):
             }
             self.cursor.execute(sql, params)
 
-    def define_stars(self):
-        sql = """
-        drop table if exists stars cascade
-        """
-        self.cursor.execute(sql)
-
-        sql = """
-        create table stars (
-            id               serial primary key, 
-            name             text,
-            constellation_id integer,
-            unique(name)
-        )
-        """
-        self.cursor.execute(sql)
-
-        sql = """
-        alter  table stars
-        add constraint parent_constellation
-            foreign key (constellation_id)
-            references constellations(id)
-        """
-        self.cursor.execute(sql)
-
-        sql = """
-        comment on column stars.name is 'star name'
-        """
-        self.cursor.execute(sql)
-
-        sql = (
-            "comment on column stars.constellation_id is "
-            "'link back to constellation table'"
-        )
-        self.cursor.execute(sql)
-
     def load_constellations(self):
         cols = ['s_constellation', 's_constellation_abr', 's_constellation_eng']
         df = self.df[cols].drop_duplicates()
@@ -373,21 +338,146 @@ class Thang(object):
         )
         psycopg2.extras.execute_values(self.cursor, sql, arglist, template)
 
+    def define_stars(self):
+        sql = """
+        drop table if exists stars cascade
+        """
+        self.cursor.execute(sql)
+
+        sql = """
+        create table stars (
+            id                    serial primary key, 
+            name                  text,
+            ra                    real,
+            dec                   real,
+            mag                   real,
+            distance              real,
+            distance_error_min    real,
+            distance_error_max    real,
+            metallicity           real,
+            metallicity_error_min real,
+            metallicity_error_max real,
+            mass                  real,
+            mass_error_min        real,
+            mass_error_max        real,
+            radius                real,
+            radius_error_min      real,
+            radius_error_max      real,
+            type                  text,
+            constellation_id      integer,
+            unique(name)
+        )
+        """
+        self.cursor.execute(sql)
+
+        sql = """
+        alter  table stars
+        add constraint parent_constellation
+            foreign key (constellation_id)
+            references constellations(id)
+        """
+        self.cursor.execute(sql)
+
+        column_comments = {
+            'name':                  'star name',
+            'constellation_id':      'link back to constellation table',
+            'ra':                    'right ascension (decimal deg)',
+            'dec':                   'declination (decimal deg)',
+            'mag':                   'magnitude',
+            'distance':              'distance (parsecs)',
+            'distance_error_min':    'distance error min (parsecs)',
+            'distance_error_max':    'distance error max (parsecs)',
+            'metallicity':           'metallicity (parsecs)',
+            'metallicity_error_min': 'metallicity error min (parsecs)',
+            'metallicity_error_max': 'metallicity error max (parsecs)',
+            'mass':                  'mass (solar units)',
+            'mass_error_min':        'mass error min (solar units)',
+            'mass_error_max':        'mass error max (solar units)',
+            'radius':                'radius (solar units)',
+            'radius_error_min':      'radius error min (solar units)',
+            'radius_error_max':      'radius error max (solar units)',
+            'type':                  'star spectral type',
+        }
+
+        for key, value in column_comments.items():
+            sql = f"""
+            comment on column stars.{key} is '{value}'
+            """
+            self.cursor.execute(sql, {'value': value})
+
     def load_stars(self):
 
-        columns = ['s_name', 's_constellation']
+        columns = [
+            's_name',
+            's_constellation',
+            's_ra',
+            's_dec',
+            's_mag',
+            's_distance',
+            's_distance_error_min',
+            's_distance_error_max',
+            's_metallicity',
+            's_metallicity_error_min',
+            's_metallicity_error_max',
+            's_mass',
+            's_mass_error_min',
+            's_mass_error_max',
+            's_radius',
+            's_radius_error_min',
+            's_radius_error_max',
+            's_type',
+        ]
         stars = self.df[columns].drop_duplicates()
 
         constellations = pd.read_sql('select * from constellations', self.conn)
         df = pd.merge(stars, constellations, how='inner', left_on='s_constellation', right_on='name') 
 
         sql = """
-        insert into stars (name, constellation_id)
+        insert into stars
+        (
+            name,
+            constellation_id,
+            ra,
+            dec,
+            mag,
+            distance,
+            distance_error_min,
+            distance_error_max,
+            metallicity,
+            metallicity_error_min,
+            metallicity_error_max,
+            mass,
+            mass_error_min,
+            mass_error_max,
+            radius,
+            radius_error_min,
+            radius_error_max,
+            type
+        )
         values %s
         """
 
         arglist = [row.to_dict() for _, row in df.iterrows()]
-        template = '(%(s_name)s, %(id)s)'
+        template = (
+            '(%(s_name)s, '
+            '%(id)s, '
+            '%(s_ra)s, '
+            '%(s_dec)s, '
+            '%(s_mag)s, '
+            '%(s_distance)s, '
+            '%(s_distance_error_min)s, '
+            '%(s_distance_error_max)s, '
+            '%(s_metallicity)s, '
+            '%(s_metallicity_error_min)s, '
+            '%(s_metallicity_error_max)s, '
+            '%(s_mass)s, '
+            '%(s_mass_error_min)s, '
+            '%(s_mass_error_max)s, '
+            '%(s_radius)s, '
+            '%(s_radius_error_min)s, '
+            '%(s_radius_error_max)s, '
+            '%(s_type)s) '
+        )
 
         psycopg2.extras.execute_values(self.cursor, sql, arglist, template)
 
