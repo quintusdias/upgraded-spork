@@ -364,6 +364,12 @@ class Thang(object):
             radius_error_min      real,
             radius_error_max      real,
             type                  text,
+            age                   real,
+            age_error_min         real,
+            age_error_max         real,
+            temperature           real,
+            temperature_error_min real,
+            temperature_error_max real,
             constellation_id      integer,
             unique(name)
         )
@@ -396,6 +402,12 @@ class Thang(object):
             'radius':                'radius (solar units)',
             'radius_error_min':      'radius error min (solar units)',
             'radius_error_max':      'radius error max (solar units)',
+            'age':                'age (Gy)',
+            'age_error_min':      'age error min (Gy)',
+            'age_error_max':      'age error max (Gy)',
+            'temperature':                'effective temperature (K)',
+            'temperature_error_min':      'effective temperature error min (K)',
+            'temperature_error_max':      'effective temperature error max (K)',
             'type':                  'star spectral type',
         }
 
@@ -425,6 +437,12 @@ class Thang(object):
             's_radius',
             's_radius_error_min',
             's_radius_error_max',
+            's_age',
+            's_age_error_min',
+            's_age_error_max',
+            's_temperature',
+            's_temperature_error_min',
+            's_temperature_error_max',
             's_type',
         ]
         stars = self.df[columns].drop_duplicates()
@@ -452,6 +470,12 @@ class Thang(object):
             radius,
             radius_error_min,
             radius_error_max,
+            age,
+            age_error_min,
+            age_error_max,
+            temperature,
+            temperature_error_min,
+            temperature_error_max,
             type
         )
         values %s
@@ -476,6 +500,12 @@ class Thang(object):
             '%(s_radius)s, '
             '%(s_radius_error_min)s, '
             '%(s_radius_error_max)s, '
+            '%(s_age)s, '
+            '%(s_age_error_min)s, '
+            '%(s_age_error_max)s, '
+            '%(s_temperature)s, '
+            '%(s_temperature_error_min)s, '
+            '%(s_temperature_error_max)s, '
             '%(s_type)s) '
         )
 
