@@ -1,3 +1,6 @@
+import logging
+import sys
+
 import pandas as pd
 import psycopg2
 import sqlalchemy
@@ -9,12 +12,45 @@ class Thang(object):
         self.engine = sqlalchemy.create_engine('postgresql:///phl')
         self.conn = psycopg2.connect(dbname='phl')
         self.cursor = self.conn.cursor()
+        self.setup_logging()
+
+    def setup_logging(self):
+        """
+        Parameters
+        ----------
+        verbosity : str
+            Logging level
+        """
+        level = logging.INFO
+
+        logger = logging.getLogger('raw2nc')
+        logger.setLevel(level)
+        ch = logging.StreamHandler(sys.stdout)
+        ch.setLevel(level)
+        format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        formatter = logging.Formatter(format)
+        ch.setFormatter(formatter)
+        logger.addHandler(ch)
+
+        self.logger = logger
 
     def __del__(self):
         self.conn.commit()
 
+    def check_historically_empty_columns(self):
+        vars = [
+            's_disc',
+            's_magnetic_field',
+        ]
+        for varname in vars:
+            s = self.df[varname].isnull().sum()
+            if s < self.df.shape[0]:
+                self.logger.warning(f"{varname} now has some data")
+
     def run(self):
         self.load_data()
+
+        self.check_historically_empty_columns()
 
         self.create_constellations()
         self.load_constellations()
@@ -120,6 +156,21 @@ class Thang(object):
             alt_names                 text,
             atmosphere                text,
             type                      text,
+            escape                    real,
+            potential                 real,
+            gravity                   real,
+            density                   real,
+            hill_sphere               real,
+            distance                  real,
+            periastron                real,
+            apastron                  real,
+            distance_eff              real,
+            flux                      real,
+            flux_min                  real,
+            flux_max                  real,
+            temp_equil                real,
+            temp_equil_min            real,
+            temp_equil_max            real,
             star_id                   integer,
             unique(name)
         )
@@ -142,39 +193,54 @@ class Thang(object):
             'radius':           'earth radii',
             'radius_error_min': 'earth radii',
             'radius_error_max': 'earth radii',
-            'year_discovered':  'planet discovered year',
-            'period':           'planet period (days)',
-            'period_error_min': 'planet period min (days)',
-            'period_error_max': 'planet period max (days)',
-            'semi_major_axis':           'planet semi_major_axis (AU)',
-            'semi_major_axis_error_min': 'planet semi_major_axis error min (AU)',
-            'semi_major_axis_error_max': 'planet semi_major_axis error max (AU)',
-            'eccentricity':              'planet eccentricity',
-            'eccentricity_error_min':    'planet eccentricity error min',
-            'eccentricity_error_max':    'planet eccentricity error max',
-            'inclination':               'planet inclination (deg)',
-            'inclination_error_min':     'planet inclination error min (deg)',
-            'inclination_error_max':     'planet inclination error max (deg)',
-            'omega':                     'planet argument of periastron (deg)',
-            'omega_error_min':           'planet argument of periastron error min (deg)',
-            'omega_error_max':           'planet argument of periastron error max (deg)',
-            'tperi':                     'planet time of periastron (seconds)',
-            'tperi_error_min':           'planet time of periastron error min (seconds)',
-            'tperi_error_max':           'planet time of periastron error max (seconds)',
-            'impact_parameter':            'planet impact parameter',
-            'impact_parameter_error_min':  'planet impact parameter error min',
-            'impact_parameter_error_max':  'planet impact parameter error max',
+            'year_discovered':  'discovered year',
+            'period':           'period (days)',
+            'period_error_min': 'period min (days)',
+            'period_error_max': 'period max (days)',
+            'semi_major_axis':           'semi_major_axis (AU)',
+            'semi_major_axis_error_min': 'semi_major_axis error min (AU)',
+            'semi_major_axis_error_max': 'semi_major_axis error max (AU)',
+            'eccentricity':              'eccentricity',
+            'eccentricity_error_min':    'eccentricity error min',
+            'eccentricity_error_max':    'eccentricity error max',
+            'inclination':               'inclination (deg)',
+            'inclination_error_min':     'inclination error min (deg)',
+            'inclination_error_max':     'inclination error max (deg)',
+            'omega':                     'argument of periastron (deg)',
+            'omega_error_min':           'argument of periastron error min (deg)',
+            'omega_error_max':           'argument of periastron error max (deg)',
+            'tperi':                     'of periastron (seconds)',
+            'tperi_error_min':           'time of periastron error min (seconds)',
+            'tperi_error_max':           'time of periastron error max (seconds)',
+            'impact_parameter':            'impact parameter',
+            'impact_parameter_error_min':  'impact parameter error min',
+            'impact_parameter_error_max':  'impact parameter error max',
             'angular_distance':          'planet-star angular separation (arcsec)',
-            'temp_measured':             'planet measured equilibrium temperature (K)',
-            'geo_albedo':                'planet measured geometric albedo',
-            'geo_albedo_error_min':      'planet measured geometric albedo error min',
-            'geo_albedo_error_max':      'planet measured geometric albedo error max',
-            'detection':                 'planet detection method',
-            'detection_mass':            'planet detection method for mass',
-            'detection_radius':          'planet detection method for radius',
-            'alt_names':                 'planet alternate names',
-            'atmosphere':                'planet atmosphere composition (no data yet)',
+            'temp_measured':             'measured equilibrium temperature (K)',
+            'geo_albedo':                'measured geometric albedo',
+            'geo_albedo_error_min':      'measured geometric albedo error min',
+            'geo_albedo_error_max':      'measured geometric albedo error max',
+            'detection':                 'detection method',
+            'detection_mass':            'detection method for mass',
+            'detection_radius':          'detection method for radius',
+            'alt_names':                 'alternate names',
+            'atmosphere':                'atmosphere composition (no data yet)',
             'type':                      'planet type (PHL''s mass-radius classification)',
+            'escape':                    'escape velocity (earth units)',
+            'potential':                 'gravitational potential (earth units)',
+            'gravity':                   'gravity (earth units)',
+            'density':                   'density (earth units)',
+            'hill_sphere':               'hill sphere (AU)',
+            'distance':                  'planet mean distance from star (AU)',
+            'periastron':                'periastron (AU)',
+            'apastron':                  'apastron (AU)',
+            'distance_eff':              'effective thermal distance from star (AU)',
+            'flux':                      'planet mean stellar flux (earth units)',
+            'flux_min':                  'planet minimum orbital stellar flux (earth units)',
+            'flux_max':                  'planet maximum orbital stellar flux (earth units)',
+            'temp_equil':                'equilibrium temperature assuming bond albedo 0.3 (K)',
+            'temp_equil_min':            'equilibrium minimum temperature assuming bond albedo 0.3 (K)',
+            'temp_equil_max':            'equilibrium maximum temperature assuming bond albedo 0.3 (K)',
         }
         for key, value in column_comments.items():
             sql = f"""
@@ -227,7 +293,22 @@ class Thang(object):
             detection_radius,
             alt_names,
             atmosphere,
-            type
+            type,
+            escape,
+            potential,
+            gravity,
+            density,
+            hill_sphere,
+            distance,
+            periastron,
+            apastron,
+            distance_eff,
+            flux,
+            flux_min,
+            flux_max,
+            temp_equil,
+            temp_equil_min,
+            temp_equil_max
         )
         values
         (
@@ -271,7 +352,22 @@ class Thang(object):
             %(p_detection_radius)s,
             %(p_alt_names)s,
             %(p_atmosphere)s,
-            %(p_type)s
+            %(p_type)s,
+            %(p_escape)s,
+            %(p_potential)s,
+            %(p_gravity)s,
+            %(p_density)s,
+            %(p_hill_sphere)s,
+            %(p_distance)s,
+            %(p_periastron)s,
+            %(p_apastron)s,
+            %(p_distance_eff)s,
+            %(p_flux)s,
+            %(p_flux_min)s,
+            %(p_flux_max)s,
+            %(p_temp_equil)s,
+            %(p_temp_equil_min)s,
+            %(p_temp_equil_max)s
         )
         """
 
@@ -318,6 +414,21 @@ class Thang(object):
                 'p_alt_names': row['p_alt_names'],
                 'p_atmosphere': row['p_atmosphere'],
                 'p_type': row['p_type'],
+                'p_escape': row['p_escape'],
+                'p_potential': row['p_potential'],
+                'p_gravity': row['p_gravity'],
+                'p_density': row['p_density'],
+                'p_hill_sphere': row['p_hill_sphere'],
+                'p_distance': row['p_distance'],
+                'p_periastron': row['p_periastron'],
+                'p_apastron': row['p_apastron'],
+                'p_distance_eff': row['p_distance_eff'],
+                'p_flux': row['p_flux'],
+                'p_flux_min': row['p_flux_min'],
+                'p_flux_max': row['p_flux_max'],
+                'p_temp_equil': row['p_temp_equil'],
+                'p_temp_equil_min': row['p_temp_equil_min'],
+                'p_temp_equil_max': row['p_temp_equil_max'],
             }
             self.cursor.execute(sql, params)
 
@@ -370,6 +481,8 @@ class Thang(object):
             temperature           real,
             temperature_error_min real,
             temperature_error_max real,
+            log_g                 real,
+            alt_names             text,
             constellation_id      integer,
             unique(name)
         )
@@ -408,6 +521,8 @@ class Thang(object):
             'temperature':                'effective temperature (K)',
             'temperature_error_min':      'effective temperature error min (K)',
             'temperature_error_max':      'effective temperature error max (K)',
+            'log_g':               'log(g)',
+            'alt_names':           'alternative names',
             'type':                  'star spectral type',
         }
 
@@ -443,6 +558,8 @@ class Thang(object):
             's_temperature',
             's_temperature_error_min',
             's_temperature_error_max',
+            's_log_g',
+            's_alt_names',
             's_type',
         ]
         stars = self.df[columns].drop_duplicates()
@@ -476,6 +593,8 @@ class Thang(object):
             temperature,
             temperature_error_min,
             temperature_error_max,
+            log_g,
+            alt_names,
             type
         )
         values %s
@@ -506,6 +625,8 @@ class Thang(object):
             '%(s_temperature)s, '
             '%(s_temperature_error_min)s, '
             '%(s_temperature_error_max)s, '
+            '%(s_log_g)s, '
+            '%(s_alt_names)s, '
             '%(s_type)s) '
         )
 
