@@ -66,7 +66,7 @@ class Thang(object):
             n = len(df)
             ids = df.id.values
             msg = f"found {n} rows where star age is negative, IDs = ({ids})"
-            self.logger.warn(msg)
+            self.logger.warning(msg)
 
             sql = """
                   update stars
@@ -529,6 +529,17 @@ class Thang(object):
             radius_est            real,
             type_temp             text,
             luminosity            real,
+            hz_opt_min            real,
+            hz_opt_max            real,
+            hz_con_min            real,
+            hz_con_max            real,
+            hz_con0_min            real,
+            hz_con0_max            real,
+            hz_con1_min            real,
+            hz_con1_max            real,
+            snow_line             real,
+            abio_zone             real,
+            tidal_lock            real,
             constellation_id      integer,
             unique(name)
         )
@@ -572,6 +583,17 @@ class Thang(object):
             'type':                  'star spectral type',
             'radius_est':            'radius estimated (solar units)',
             'type_temp':             'spectral type',
+            'hz_opt_min':            'inner edge of the optimistic habitable zone (AU)',
+            'hz_opt_max':            'outer edge of the optimistic habitable zone (AU)',
+            'hz_con_min':            'inner edge of the conservative habitable zone (AU)',
+            'hz_con_max':            'outer edge of the conservative habitable zone (AU)',
+            'hz_con0_min':           'inner edge of the conservative habitable zone, mass = 0.1 Me (AU)',
+            'hz_con0_max':           'outer edge of the conservative habitable zone, mass = 0.1 Me (AU)',
+            'hz_con1_min':           'inner edge of the conservative habitable zone, mass = 5 Me (AU)',
+            'hz_con1_max':           'outer edge of the conservative habitable zone, mass = 5 Me (AU)',
+            'snow_line':             'snow line (AU)',
+            'abio_zone':             'abiogenesis zone outer edge (AU)',
+            'tidal_lock':            'tidal lock zone outder edge (AU)',
             'luminosity':            'luminosity (stellar units)',
         }
 
@@ -613,6 +635,17 @@ class Thang(object):
             's_radius_est',
             's_type_temp',
             's_luminosity',
+            's_hz_opt_min',
+            's_hz_opt_max',
+            's_hz_con_min',
+            's_hz_con_max',
+            's_hz_con0_min',
+            's_hz_con0_max',
+            's_hz_con1_min',
+            's_hz_con1_max',
+            's_snow_line',
+            's_abio_zone',
+            's_tidal_lock',
         ]
         stars = self.df[columns].drop_duplicates()
 
@@ -651,44 +684,67 @@ class Thang(object):
             type,
             radius_est,
             type_temp,
-            luminosity
+            luminosity,
+            hz_opt_min,
+            hz_opt_max,
+            hz_con_min,
+            hz_con_max,
+            hz_con0_min,
+            hz_con0_max,
+            hz_con1_min,
+            hz_con1_max,
+            snow_line,
+            abio_zone,
+            tidal_lock
         )
         values %s
         """
 
         arglist = [row.to_dict() for _, row in df.iterrows()]
-        template = (
-            '(%(s_name)s, '
-            '%(id)s, '
-            '%(s_ra)s, '
-            '%(s_dec)s, '
-            '%(s_mag)s, '
-            '%(s_distance)s, '
-            '%(s_distance_error_min)s, '
-            '%(s_distance_error_max)s, '
-            '%(s_metallicity)s, '
-            '%(s_metallicity_error_min)s, '
-            '%(s_metallicity_error_max)s, '
-            '%(s_mass)s, '
-            '%(s_mass_error_min)s, '
-            '%(s_mass_error_max)s, '
-            '%(s_radius)s, '
-            '%(s_radius_error_min)s, '
-            '%(s_radius_error_max)s, '
-            '%(s_age)s, '
-            '%(s_age_error_min)s, '
-            '%(s_age_error_max)s, '
-            '%(s_temperature)s, '
-            '%(s_temperature_error_min)s, '
-            '%(s_temperature_error_max)s, '
-            '%(s_log_g)s, '
-            '%(s_alt_names)s, '
-            '%(s_type)s, '
-            '%(s_radius_est)s, '
-            '%(s_type_temp)s, '
-            '%(s_luminosity)s'
-            ') '
-        )
+
+        targs = ', '.join([
+            '%(s_name)s',
+            '%(id)s',
+            '%(s_ra)s',
+            '%(s_dec)s',
+            '%(s_mag)s',
+            '%(s_distance)s',
+            '%(s_distance_error_min)s',
+            '%(s_distance_error_max)s',
+            '%(s_metallicity)s',
+            '%(s_metallicity_error_min)s',
+            '%(s_metallicity_error_max)s',
+            '%(s_mass)s',
+            '%(s_mass_error_min)s',
+            '%(s_mass_error_max)s',
+            '%(s_radius)s',
+            '%(s_radius_error_min)s',
+            '%(s_radius_error_max)s',
+            '%(s_age)s',
+            '%(s_age_error_min)s',
+            '%(s_age_error_max)s',
+            '%(s_temperature)s',
+            '%(s_temperature_error_min)s',
+            '%(s_temperature_error_max)s',
+            '%(s_log_g)s',
+            '%(s_alt_names)s',
+            '%(s_type)s',
+            '%(s_radius_est)s',
+            '%(s_type_temp)s',
+            '%(s_luminosity)s',
+            '%(s_hz_opt_min)s',
+            '%(s_hz_opt_max)s',
+            '%(s_hz_con_min)s',
+            '%(s_hz_con_max)s',
+            '%(s_hz_con0_min)s',
+            '%(s_hz_con0_max)s',
+            '%(s_hz_con1_min)s',
+            '%(s_hz_con1_max)s',
+            '%(s_snow_line)s',
+            '%(s_abio_zone)s',
+            '%(s_tidal_lock)s',
+        ])
+        template = f'({targs})'
 
         psycopg2.extras.execute_values(self.cursor, sql, arglist, template)
 
