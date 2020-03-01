@@ -23,7 +23,7 @@ class Thang(object):
         """
         level = logging.INFO
 
-        logger = logging.getLogger('raw2nc')
+        logger = logging.getLogger('loadphl')
         logger.setLevel(level)
         ch = logging.StreamHandler(sys.stdout)
         ch.setLevel(level)
@@ -47,26 +47,67 @@ class Thang(object):
             if s < self.df.shape[0]:
                 self.logger.warning(f"{varname} now has some data")
 
-    def run(self):
-        self.load_data()
-
+    def preprocess(self):
+        self.logger.info('Pre-processing...')
         self.check_historically_empty_columns()
 
-        self.create_constellations()
-        self.load_constellations()
+    def postprocess(self):
+        self.check_for_bad_star_ages()
 
+    def check_for_bad_star_ages(self):
+        sql = """
+        select id
+        from stars
+        where age < 0
+        """
+        df = pd.read_sql(sql, self.conn)
+
+        if df.shape[0] > 0:
+            n = len(df)
+            ids = df.id.values
+            msg = f"found {n} rows where star age is negative, IDs = ({ids})"
+            self.logger.warn(msg)
+
+            sql = """
+                  update stars
+                  set age = 'NaN'
+                  where age < 0
+                  """
+            self.cursor.execute(sql)
+
+    def run(self):
+        self.load_data()
+        self.preprocess()
+        self.create_constellations()
+        self.create_stars()
+        self.create_planets()
+        self.postprocess()
+
+    def create_planets(self):
+        self.logger.info('Creating planets ...')
+        self.define_planets()
+        self.load_planets()
+        self.logger.info('Done with planets ...')
+
+    def create_stars(self):
+        self.logger.info('Creating stars ...')
         self.define_stars()
         self.load_stars()
+        self.retrieve_star_id()
+        self.logger.info('Done with stars ...')
 
-        self.update()
+    def create_constellations(self):
+        self.logger.info('Creating constellations ...')
+        self.define_constellations()
+        self.load_constellations()
+        self.logger.info('Done with constellations ...')
 
-        self.create_planets()
-        self.load_planets()
-
-    def update(self):
+    def retrieve_star_id(self):
+        """
+        get rid of the star name now that we have the ID.
+        """
         df_stars = pd.read_sql('select * from stars', self.conn)
 
-        # get rid of the star name now that we have the ID.
         df = pd.merge(self.df, df_stars, how='inner', left_on='s_name', right_on='name')
         df = df.drop('s_name', axis='columns')
         df = df.rename(mapper={'id': 'star_id'}, axis='columns')
@@ -74,14 +115,16 @@ class Thang(object):
         self.df = df
 
     def load_data(self):
+        self.logger.info('starting to read data from CSV file')
         self.df = pd.read_csv('phl_exoplanet_catalog.csv',
                               parse_dates=['P_UPDATED'])
+        self.logger.info('finished reading data from CSV file')
 
         # Make the columns all lower case.  Upper case causes issues.
         cols = [x.lower() for x in self.df.columns]
         self.df.columns = cols
 
-    def create_constellations(self):
+    def define_constellations(self):
         sql = """
         drop table if exists constellations cascade
         """
@@ -106,7 +149,7 @@ class Thang(object):
             """
             self.cursor.execute(sql, {'value': value})
 
-    def create_planets(self):
+    def define_planets(self):
         sql = """
         drop table if exists planets
         """
