@@ -526,6 +526,9 @@ class Thang(object):
             temperature_error_max real,
             log_g                 real,
             alt_names             text,
+            radius_est            real,
+            type_temp             text,
+            luminosity            real,
             constellation_id      integer,
             unique(name)
         )
@@ -558,15 +561,18 @@ class Thang(object):
             'radius':                'radius (solar units)',
             'radius_error_min':      'radius error min (solar units)',
             'radius_error_max':      'radius error max (solar units)',
-            'age':                'age (Gy)',
-            'age_error_min':      'age error min (Gy)',
-            'age_error_max':      'age error max (Gy)',
-            'temperature':                'effective temperature (K)',
-            'temperature_error_min':      'effective temperature error min (K)',
-            'temperature_error_max':      'effective temperature error max (K)',
-            'log_g':               'log(g)',
-            'alt_names':           'alternative names',
+            'age':                   'age (Gy)',
+            'age_error_min':         'age error min (Gy)',
+            'age_error_max':         'age error max (Gy)',
+            'temperature':           'effective temperature (K)',
+            'temperature_error_min': 'effective temperature error min (K)',
+            'temperature_error_max': 'effective temperature error max (K)',
+            'log_g':                 'log(g)',
+            'alt_names':             'alternative names',
             'type':                  'star spectral type',
+            'radius_est':            'radius estimated (solar units)',
+            'type_temp':             'spectral type',
+            'luminosity':            'luminosity (stellar units)',
         }
 
         for key, value in column_comments.items():
@@ -604,11 +610,15 @@ class Thang(object):
             's_log_g',
             's_alt_names',
             's_type',
+            's_radius_est',
+            's_type_temp',
+            's_luminosity',
         ]
         stars = self.df[columns].drop_duplicates()
 
         constellations = pd.read_sql('select * from constellations', self.conn)
-        df = pd.merge(stars, constellations, how='inner', left_on='s_constellation', right_on='name') 
+        df = pd.merge(stars, constellations,
+                      how='inner', left_on='s_constellation', right_on='name') 
 
         sql = """
         insert into stars
@@ -638,7 +648,10 @@ class Thang(object):
             temperature_error_max,
             log_g,
             alt_names,
-            type
+            type,
+            radius_est,
+            type_temp,
+            luminosity
         )
         values %s
         """
@@ -670,7 +683,11 @@ class Thang(object):
             '%(s_temperature_error_max)s, '
             '%(s_log_g)s, '
             '%(s_alt_names)s, '
-            '%(s_type)s) '
+            '%(s_type)s, '
+            '%(s_radius_est)s, '
+            '%(s_type_temp)s, '
+            '%(s_luminosity)s'
+            ') '
         )
 
         psycopg2.extras.execute_values(self.cursor, sql, arglist, template)
