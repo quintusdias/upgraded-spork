@@ -47,9 +47,14 @@ class Thang(object):
             if s < self.df.shape[0]:
                 self.logger.warning(f"{varname} now has some data")
 
+    def xform_types(self):
+        self.df['p_habzone_opt'] = self.df['p_habzone_opt'].astype(bool)
+        self.df['p_habzone_con'] = self.df['p_habzone_con'].astype(bool)
+
     def preprocess(self):
         self.logger.info('Pre-processing...')
         self.check_historically_empty_columns()
+        self.xform_types()
 
     def postprocess(self):
         self.check_for_bad_star_ages()
@@ -214,6 +219,11 @@ class Thang(object):
             temp_equil                real,
             temp_equil_min            real,
             temp_equil_max            real,
+            habzone_opt               boolean,
+            habzone_con               boolean,
+            type_temp                 text,
+            habitable                 integer,
+            esi                       real,
             star_id                   integer,
             unique(name)
         )
@@ -284,6 +294,11 @@ class Thang(object):
             'temp_equil':                'equilibrium temperature assuming bond albedo 0.3 (K)',
             'temp_equil_min':            'equilibrium minimum temperature assuming bond albedo 0.3 (K)',
             'temp_equil_max':            'equilibrium maximum temperature assuming bond albedo 0.3 (K)',
+            'habzone_opt':               'the planet is in the optimistic habitable zone flag (1 = yes)',
+            'habzone_con':               'the planet is in the conservative habitable zone flag (1 = yes)',
+            'type_temp':                 'thermal type (PHL''s thermal classification)',
+            'habitable':                 'planet is potentially habitable index (1 = conservative, 2 = optimistic)',
+            'esi':                       'Earth similarity index',
         }
         for key, value in column_comments.items():
             sql = f"""
@@ -351,7 +366,12 @@ class Thang(object):
             flux_max,
             temp_equil,
             temp_equil_min,
-            temp_equil_max
+            temp_equil_max,
+            habzone_opt,
+            habzone_con,
+            type_temp,
+            habitable,
+            esi
         )
         values
         (
@@ -410,7 +430,12 @@ class Thang(object):
             %(p_flux_max)s,
             %(p_temp_equil)s,
             %(p_temp_equil_min)s,
-            %(p_temp_equil_max)s
+            %(p_temp_equil_max)s,
+            %(p_habzone_opt)s,
+            %(p_habzone_con)s,
+            %(p_type_temp)s,
+            %(p_habitable)s,
+            %(p_esi)s
         )
         """
 
@@ -472,6 +497,11 @@ class Thang(object):
                 'p_temp_equil': row['p_temp_equil'],
                 'p_temp_equil_min': row['p_temp_equil_min'],
                 'p_temp_equil_max': row['p_temp_equil_max'],
+                'p_habzone_opt': row['p_habzone_opt'],
+                'p_habzone_con': row['p_habzone_con'],
+                'p_type_temp': row['p_type_temp'],
+                'p_habitable': row['p_habitable'],
+                'p_esi': row['p_esi'],
             }
             self.cursor.execute(sql, params)
 
