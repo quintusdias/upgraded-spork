@@ -70,12 +70,16 @@ class Thang(object):
         if df.shape[0] > 0:
             n = len(df)
             ids = df.id.values
-            msg = f"found {n} rows where star age is negative, IDs = ({ids})"
+            msg = (
+                f"Found {n} rows where star age is negative, IDs = ({ids}).  "
+                f"This value has been changed to NULL."
+            )
+
             self.logger.warning(msg)
 
             sql = """
                   update stars
-                  set age = 'NaN'
+                  set age = NULL
                   where age < 0
                   """
             self.cursor.execute(sql)
