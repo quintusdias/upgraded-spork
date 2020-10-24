@@ -18,16 +18,16 @@ with cte as (
         -- the final results.  If we don't do this, then we cannot put the
         -- '< 1' stars first in the result set.
         case
+            when age is null or age = 'NaN' then 3
             when age < 1 then 0
             when age < 5 then 1
             when age >= 5 then 2
-            when age is null then 3
         end star_age_proxy,
         case
+            when age is null or age = 'NaN' then 'No Data'
             when age < 1 then '< 1'
             when age < 5 then floor(age)::text || '-' || floor(age+1)::text  
             when age >= 5 then '> 5'                                      
-            when age is null then 'No Data'                                       
         end star_age,                                                            
         count(*) as n                                                              
     from stars                                                                     
