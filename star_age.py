@@ -12,17 +12,30 @@ cursor = conn.cursor()
 
 # Summarize the planet detection methods.
 sql = """
-select
-    case
-        when age < 1 then '< 1'
-        when age < 5 then floor(age)::text || '-' || floor(age+1)::text
-        when age >= 5 then '> 5'
-        when age is null then 'No Data'
-    end star_age,
-    count(*) as n
-from stars
-group by star_age
-order by star_age
+with cte as (
+    select
+        -- this column is for ordering purposes only, it will not appear in
+        -- the final results.  If we don't do this, then we cannot put the
+        -- '< 1' stars first in the result set.
+        case
+            when age < 1 then 0
+            when age < 5 then 1
+            when age >= 5 then 2
+            when age is null then 3
+        end star_age_proxy,
+        case
+            when age < 1 then '< 1'
+            when age < 5 then floor(age)::text || '-' || floor(age+1)::text  
+            when age >= 5 then '> 5'                                      
+            when age is null then 'No Data'                                       
+        end star_age,                                                            
+        count(*) as n                                                              
+    from stars                                                                     
+    group by star_age, star_age_proxy
+)
+select star_age, n
+from cte
+order by star_age_proxy, star_age
 """
 df = pd.read_sql(sql, conn, index_col='star_age')
 
